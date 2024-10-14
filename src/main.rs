@@ -9,13 +9,15 @@ async fn main() {
 
     let app = Router::new()
         .route("/", get(root))
-        .route("/list_all_worker_name", get(list_all_worker_name))
+        .route("/list_all_worker_name", post(list_all_worker_name))
         .route("/add_worker_name", post(add_worker_name))
         .route("/remove_worker_name", post(remove_worker_name))
         .route("/add_mission", post(add_mission))
         .route("/remove_mission", post(remove_mission))
         .route("/list_all_mission", post(list_all_mission))
-        .route("/update_mission_state", post(update_mission_state));
+        .route("/update_mission_state", post(update_mission_state))
+        .route("/add_log", post(add_log))
+        .route("/list_all_logs", post(list_all_logs));
 
     // Run our app with hyper, listening globally on port 3000
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
@@ -33,13 +35,20 @@ struct Postsheet {
     mission_name: Option<String>,
     mission_id: Option<i32>,
     mission_state: Option<String>,
+    log_id: Option<i32>,
+    log_messege: Option<String>,
+    log_date: Option<String>,
     useless: Option<String>, // This is a hack to allow for empty form submissions
 }
 
 async fn list_all_worker_name() -> String {
-    get_all_worker_names()
-        .iter()
-        .fold("".to_string(), |acc, name| format!("{}{}\n", acc, name))
+    format!(
+        "[{}]",
+        get_all_worker_names()
+            .iter()
+            .map(|name| format!("\"{}\",", name.clone()))
+            .fold("".to_string(), |acc, name| format!("{}{}", acc, name))
+    )
 }
 
 fn get_all_worker_names() -> Vec<String> {
@@ -126,11 +135,13 @@ async fn remove_mission(Form(isheet): Form<Postsheet>) -> String {
 }
 
 async fn list_all_mission(Form(isheet): Form<Postsheet>) -> String {
-    get_all_missions(Form(isheet))
-        .iter()
-        .fold("".to_string(), |acc, mission| {
-            format!("{}{}\n", acc, mission.join(" "))
-        })
+    format!(
+        "[{}]",
+        get_all_missions(Form(isheet))
+            .iter()
+            .map(|mission| format!("[\"{}\"],", mission.join("\",\"")))
+            .fold("".to_string(), |acc, mission| format!("{}{}", acc, mission))
+    )
 }
 
 fn get_all_missions(Form(isheet): Form<Postsheet>) -> Vec<Vec<String>> {
@@ -201,25 +212,64 @@ async fn update_mission_state(Form(isheet): Form<Postsheet>) -> String {
     }
 }
 
-async fn update_mission_name(Form(isheet): Form<Postsheet>) -> String {
+async fn add_log(Form(isheet): Form<Postsheet>) -> String {
     if isheet.mission_id.is_none() {
         return "mission_id not provided".to_string();
     }
-    if isheet.mission_name.is_none() {
-        return "mission_name not provided".to_string();
+    if isheet.log_date.is_none() {
+        return "log_date not provided".to_string();
+    }
+    if isheet.log_messege.is_none() {
+        return "log_messege not provided".to_string();
     }
     let url = "mysql://root:123456@localhost:3306/todo_list";
     let pool = Pool::new(url).unwrap();
     let mut conn = pool.get_conn().unwrap();
-    let query = "UPDATE mission_table SET mission_name = :mission_name WHERE id = :id";
+    let query = "INSERT INTO log_table (`mission_id`, `log_messege`, `log_date`) VALUES (:mission_id,:log_messege,:log_date)";
     match conn.exec_drop(
         query,
         params! {
-            "mission_name" => isheet.mission_name.clone().unwrap(),
-            "id" => isheet.mission_id.clone().unwrap(),
+            "mission_id" => isheet.mission_id.clone().unwrap(),
+            "log_messege" => isheet.log_messege.clone().unwrap(),
+            "log_date" => isheet.log_date.clone().unwrap(),
         },
     ) {
-        Ok(_) => "mission name update successful".to_string(),
-        Err(_) => "mission name update failed".to_string(),
+        Ok(_) => "log insert successful".to_string(),
+        Err(_) => "log insert failed".to_string(),
+    }
+}
+
+async fn list_all_logs(Form(isheet): Form<Postsheet>) -> String {
+    format!(
+        "[{}]",
+        get_all_logs(Form(isheet))
+            .iter()
+            .map(|log| format!("[\"{}\"],", log.join("\",\"")))
+            .fold("".to_string(), |acc, log| format!("{}{}", acc, log))
+    )
+}
+
+fn get_all_logs(Form(isheet): Form<Postsheet>) -> Vec<Vec<String>> {
+    let url = "mysql://root:123456@localhost:3306/todo_list";
+    let pool = Pool::new(url).unwrap();
+    let mut conn = pool.get_conn().unwrap();
+    let query = "SELECT * FROM log_table";
+    let mut logs = conn
+        .query_map(query, |n: Row| {
+            vec![
+                n.get("log_id").unwrap(),
+                n.get("mission_id").unwrap(),
+                n.get("log_messege").unwrap(),
+                n.get("log_date").unwrap(),
+            ]
+        })
+        .unwrap();
+    if let Some(mission_id) = isheet.mission_id {
+        logs.iter()
+            .filter(|log| log[1] == mission_id.to_string())
+            .map(|log| log.clone())
+            .collect()
+    } else {
+        logs
     }
 }

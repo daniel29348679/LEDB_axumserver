@@ -1,8 +1,8 @@
 -- MySQL dump 10.13  Distrib 8.0.38, for Win64 (x86_64)
 --
--- Host: localhost    Database: todo_list
+-- Host: 127.0.0.1    Database: todo_list
 -- ------------------------------------------------------
--- Server version	8.0.39
+-- Server version	9.0.1
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -14,6 +14,33 @@
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+
+--
+-- Table structure for table `log_table`
+--
+
+DROP TABLE IF EXISTS `log_table`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `log_table` (
+  `log_id` int NOT NULL AUTO_INCREMENT,
+  `mission_id` varchar(45) NOT NULL,
+  `log_messege` varchar(45) NOT NULL,
+  `log_date` varchar(45) NOT NULL,
+  PRIMARY KEY (`log_id`),
+  UNIQUE KEY `log_id_UNIQUE` (`log_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `log_table`
+--
+
+LOCK TABLES `log_table` WRITE;
+/*!40000 ALTER TABLE `log_table` DISABLE KEYS */;
+INSERT INTO `log_table` VALUES (1,'1','第一次測試','2024/10/14'),(2,'1','第一次測試','2024/10/14');
+/*!40000 ALTER TABLE `log_table` ENABLE KEYS */;
+UNLOCK TABLES;
 
 --
 -- Table structure for table `mission_table`
@@ -74,4 +101,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2024-10-12 19:34:55
+-- Dump completed on 2024-10-14 11:01:07
